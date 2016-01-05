@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Demo of javascript creating photo gallery</title>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script src="js/jssor.slider.mini.js"></script>
+
+<script>
+
+// The number of images added
+var validImgCnt = 0;
+
+// The URLs of the images
+var imgUrls = [];
+
+var infoField;
+
+/**
+ * Try to add an image URL to the list
+ * Add to imgUrls[] and increase validImgCnt, if imgUrl is valid
+ */
+function checkAndAddImgUrl (imgUrl) {
+	
+	icon = $(".imgCandidate")[validImgCnt];
+	
+	icon.onerror = function() {
+		// Show an error message
+	  	infoField.innerText = "Image not exists at URL: " + imgUrl;
+	  	
+	  	// Remove the image src from the icon
+	  	icon.src = "";
+	};
+	
+	icon.onload = function() {
+    		// Clear any error message
+	   		infoField.innerText = "";
+	   		
+    		// Store the image url and increase counter
+		    imgUrls [ validImgCnt ] = imgUrl;
+        	validImgCnt ++;
+
+        	// Check if all images added
+        	if (validImgCnt >= 10) {
+        		
+        		// Load all image url to gallery
+        		for (i=0; i<10; i++) {
+            		imageGal = $(".imgGallery")[i];
+            		imageGal.src = imgUrls[i];
+        		}
+        		
+        		// Hide the image add panel
+        		$("#inputPanel").hide();
+        		
+        		// Create image gallery and auto-play
+        	    var options = { $AutoPlay: true };
+        	    jssor_slider1 = new $JssorSlider$('slider1_container', options);
+
+        	}
+		};
+	
+ 	// Load image to the icon and trigger either onload or onerror event.
+	icon.src = imgUrl;
+	
+}
+
+// When the document is loaded
+$(document).ready(function(){
+
+	// Initiate the element displaying error information
+  	infoField = $("#infoMsg")[0];
+
+	// Invoke checkAndAddImgUrl when clicking the "Add" button
+    $("#btnAddImage").click(function(){
+    	checkAndAddImgUrl ($("#urlInput")[0].value);
+    });
+    
+});
+
+</script>
+
+</head>
+
+<body>
+
+<div id="inputPanel">
+
+	<p> Input an image URL and Add it to the gallery </p>
+	<input type="text" id="urlInput" value="" size="80"> 
+	<input type="button" id="btnAddImage" value="Add">
+
+	<p id="infoMsg" style="color:red"> </p>
+
+	<img width=50 height=50 id="img1" class="imgCandidate">
+	<img width=50 height=50 id="img2" class="imgCandidate">
+	<img width=50 height=50 id="img3" class="imgCandidate">
+	<img width=50 height=50 id="img4" class="imgCandidate">
+	<img width=50 height=50 id="img5" class="imgCandidate">
+	<img width=50 height=50 id="img6" class="imgCandidate">
+	<img width=50 height=50 id="img7" class="imgCandidate">
+	<img width=50 height=50 id="img8" class="imgCandidate">
+	<img width=50 height=50 id="img9" class="imgCandidate">
+	<img width=50 height=50 id="img10" class="imgCandidate">
+
+</div>
+
+<div id="slider1_container" style="position: relative; top: 0px; left: 0px; width: 600px; height: 300px;">
+    <!-- Slides Container -->
+    <div u="slides" style="cursor: move; position: absolute; overflow: hidden; left: 0px; top: 0px; width: 600px; height: 300px;">
+        <div><img u="image" id="imgGal1" class="imgGallery" /></div>
+        <div><img u="image" id="imgGal2" class="imgGallery" /></div>
+        <div><img u="image" id="imgGal3" class="imgGallery" /></div>
+        <div><img u="image" id="imgGal4" class="imgGallery" /></div>
+        <div><img u="image" id="imgGal5" class="imgGallery" /></div>
+        <div><img u="image" id="imgGal6" class="imgGallery" /></div>
+        <div><img u="image" id="imgGal7" class="imgGallery" /></div>
+        <div><img u="image" id="imgGal8" class="imgGallery" /></div>
+        <div><img u="image" id="imgGal9" class="imgGallery" /></div>
+        <div><img u="image" id="imgGal10" class="imgGallery" /></div>
+    </div>
+</div>
+
+</body>
+</html>
