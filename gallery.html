@@ -4,9 +4,12 @@
 <meta charset="UTF-8">
 <title>Demo of javascript creating photo gallery</title>
 
-<script src="js/jquery-1.9.1.min.js"></script>
+<script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
 
 <script src="js/jssor.slider.mini.js"></script>
+
+<link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-1.20.0.css">
+<script src="http://code.jquery.com/qunit/qunit-1.20.0.js"></script>
 
 <script>
 
@@ -18,20 +21,40 @@ var imgUrls = [];
 
 var infoField;
 
+var jssor_slider;
+
+var addImgBtn;
+
+function numberImageAdded () {
+	return validImgCnt;
+}
+
 /**
  * Try to add an image URL to the list
  * Add to imgUrls[] and increase validImgCnt, if imgUrl is valid
  */
-function checkAndAddImgUrl (imgUrl) {
+function checkAndAddImgUrl (imgUrl, callback) {
+	
+	// Temporary disable the addImgBtn, (until image loaded or image error)       
+	addImgBtn.disabled = true;
 	
 	icon = $(".imgCandidate")[validImgCnt];
 	
 	icon.onerror = function() {
 		// Show an error message
-	  	infoField.innerText = "Image not exists at URL: " + imgUrl;
+	  	infoField.innerText = "Error: image not exists at URL: " + imgUrl;
 	  	
 	  	// Remove the image src from the icon
 	  	icon.src = "";
+	  	
+	  	// Enable the button
+    	addImgBtn.disabled = false;
+	  	
+	  	this.onload= "";
+	  	this.onerror = ""; // Avoid repeatly entering this call back
+	  	
+	  	if (callback)
+	  		callback();
 	};
 	
 	icon.onload = function() {
@@ -56,9 +79,19 @@ function checkAndAddImgUrl (imgUrl) {
         		
         		// Create image gallery and auto-play
         	    var options = { $AutoPlay: true };
-        	    jssor_slider1 = new $JssorSlider$('slider1_container', options);
+        	    jssor_slider = new $JssorSlider$('slider1_container', options);
 
         	}
+        	
+    	  	// Enable the button
+        	addImgBtn.disabled = false;
+    	  	
+        	this.onerror = "";
+    	  	this.onload = ""; // Avoid repeatly entering this call back
+    	  	
+    	  	if (callback)
+    	  		callback();
+
 		};
 	
  	// Load image to the icon and trigger either onload or onerror event.
@@ -72,20 +105,162 @@ $(document).ready(function(){
 	// Initiate the element displaying error information
   	infoField = $("#infoMsg")[0];
 
+  	addImgBtn = $("#btnAddImage")[0];
+  	
 	// Invoke checkAndAddImgUrl when clicking the "Add" button
     $("#btnAddImage").click(function(){
     	checkAndAddImgUrl ($("#urlInput")[0].value);
     });
+	
+	// Trigger the qunit testing
+	//doTest();
     
 });
 
+
+/**
+ * Following codes are for unit testing with qunit
+ * Ideally it can be put in a stand-alone js file.
+ */
+ 
+function addImageTest (cnt) {
+	
+	testTitle = (cnt==10 ? "verify gallery" : "add image " + (cnt+1) );
+	
+	QUnit.test(testTitle, function( assert ) {
+		/**
+		 *  Verify the absolute url path (urlAbs) conforms to the relative path  (urlRelative)
+		 */
+		function sameUrl (urlAbs, urlRelative, info) {
+		    assert.equal( 
+		    		urlAbs.substring (urlAbs.length - urlRelative.length, urlAbs.length), 
+		    		urlRelative,
+		    		info);
+		}
+	
+		/**
+		 * Verify the ith icon image url
+		 */
+		function checkIconImgUrl(i, url) {
+			iconSrc = $(".imgCandidate")[i].src;
+					
+		    sameUrl( iconSrc, url, "icon img:" + i);
+		}
+	
+		/**
+		 * Verify the ith gallery image url
+		 */
+		function checkGalleryImgUrl(i, url) {
+			galSrc = $(".imgGallery")[i].src;
+		    sameUrl( galSrc, url, "gallery img:" + i);
+		}
+		
+		function finalVerify () {
+			// This is the last verification for all gallery images
+			for (j=0; j<10; j++)
+				checkGalleryImgUrl (j, "img/" + (j+1) + ".jpg");
+			
+			// Check the sliding show is auto-playing
+			assert.ok (jssor_slider.$IsAutoPlaying(), "Gallery sliding");	
+		}
+		
+		// Verify adding one image
+		
+		// Get current number of image
+		imgIdx = numberImageAdded();
+		
+		imgUrl = "img/" + (imgIdx+1) + ".jpg";
+		
+		// Do an asynchronized wait until the addImgBtn becomes enabled again
+		// Then proceeding the next test case.
+        var done = assert.async();
+		
+		// This is the function call we want to verify
+		checkAndAddImgUrl (imgUrl, //);
+				// call back for verification when loaded or error
+				function() {
+				    assert.ok(!addImgBtn.disabled , "Button enabled." );
+				    // Check icon image
+				    checkIconImgUrl (imgIdx, imgUrl);
+				    
+				    // Proceed to next image
+				    assert.equal ( numberImageAdded(), imgIdx + 1);
+				    
+				    if (imgIdx >= 9)
+				    	finalVerify();
+				    
+				    // Notify qunit to continue
+				    done();
+      			});
+
+	});
+}
+
+function addImageTestInvalid() {
+	
+	QUnit.test("Add image incorrect url", function( assert ) {
+
+		imgIdx = numberImageAdded();
+		
+		// create an invalid imgUrl
+		imgUrl = "img/a" + (imgIdx+1) + ".jpg";
+		
+		curNumberImg = numberImageAdded();
+		
+		// Do an asynchronized wait until the addImgBtn becomes enabled again
+		// Then proceeding the next test case.
+        var done = assert.async();
+		
+		// This is the function call we want to verify
+		checkAndAddImgUrl (imgUrl, 
+				// call back for verification when loaded or error
+
+				function() {
+				    assert.ok(!addImgBtn.disabled , "Button enabled." );
+				    
+				    // Check number of images loaded still the same 
+				    assert.equal (curNumberImg, numberImageAdded(), "image not added");
+				    
+				    // Check an error message
+				    assert.ok ( infoField.innerText.match("Error"), "Error message shown" );
+				    
+				    // Notify qunit to continue
+				    done();
+				});
+	});
+}
+
+/**
+ * Register the test cases and run one by one
+ */
+function doTest() {
+	// Ten rounds for adding 10 images
+	for (cnt = 0; cnt < 10; cnt++) {
+		
+		// When cnt = 2 & cnt = 5, add a test for incorrect image url
+		if (cnt == 2 || cnt == 5) {
+			addImageTestInvalid();
+		}
+		
+		// Test adding an image. The last one verifies the gallery sliding show as well
+		addImageTest(cnt);
+	}
+
+}
+
 </script>
+  
 
 </head>
 
 <body>
 
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+
+
 <div id="inputPanel">
+    <p> <input type="button" onclick="doTest()" value="Click to start QUnit auto-test"></p>
 
 	<p> Input an image URL and Add it to the gallery </p>
 	<input type="text" id="urlInput" value="" size="80"> 
